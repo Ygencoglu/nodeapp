@@ -1,0 +1,160 @@
+<!-- views/search.ejs -->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Search</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+
+    .search-container {
+      max-width: 400px;
+      margin: 0 auto;
+      margin-top: 50px;
+      padding: 20px;
+      background-color: #ffffff;
+      border: 1px solid #ced4da;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="search-container">
+      <h1 class="text-center">User Search</h1>
+
+      <form action="/search" method="post">
+        <div class="form-group">
+          <label for="searchedUsername">Search Username:</label>
+          <input type="text" id="searchedUsername" name="searchedUsername" class="form-control" required oninput="liveSearch()">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Search</button>
+      </form>
+
+      <!-- Display live search results -->
+      <ul id="searchResults" class="list-group"></ul>
+
+      <div id="userDetails">
+        <% if (locals && locals.error) { %>
+        <p class="text-danger"><%= locals.error %></p>
+        <% } else if (locals && locals.user) { %>
+        <h2>User Details</h2>
+        <p>Username: <%= locals.user.username %></p>
+        <!-- Display other user details here -->
+
+        <% if (locals.details.length > 0) { %>
+        <h2>User PostgreSQL Details</h2>
+        <ul>
+          <% locals.details.forEach(detail => { %>
+          <li>City: <%= detail.city %>, Birthdate: <%= detail.birthdate %></li>
+          <% }); %>
+        </ul>
+        <% } else { %>
+        <p>No details found in PostgreSQL for this user.</p>
+        <% } %>
+        <% } %>
+      </div>
+
+      <p class="text-center"><a href="/dashboard">Back to Dashboard</a></p>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS, jQuery, Popper.js -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+  <script>
+    // Function to handle live search
+    async function liveSearch() {
+      const input = document.getElementById('searchedUsername');
+      const resultContainer = document.getElementById('searchResults');
+      const userDetailsContainer = document.getElementById('userDetails');
+
+      // Clear previous results and details
+      resultContainer.innerHTML = '';
+      userDetailsContainer.innerHTML = '';
+
+      // Get the search query
+      const query = input.value.trim();
+
+      // Perform a request only if the query is not empty
+      if (query !== '') {
+        try {
+          // Send an AJAX request to the server
+          const response = await fetch(`/live-search?query=${query}`);
+          const data = await response.json();
+
+          // Display the results
+          data.forEach(user => {
+            const listItem = document.createElement('li');
+            listItem.textContent = user.username;
+            listItem.classList.add('list-group-item');
+            listItem.addEventListener('click', async function() {
+              // Fetch user details and update the page
+              const userDetailsResponse = await fetch(`/user-details/${user._id}`);
+              const userDetailsData = await userDetailsResponse.json();
+              updateDetails(userDetailsData);
+            });
+            resultContainer.appendChild(listItem);
+          });
+        } catch (error) {
+          console.error('Error during live search:', error);
+        }
+      }
+    }
+
+    // Function to update details on the page
+    function updateDetails(data) {
+      const userDetailsContainer = document.getElementById('userDetails');
+
+      if (data.error) {
+        const errorElement = document.createElement('p');
+        errorElement.classList.add('text-danger');
+        errorElement.textContent = data.error;
+        userDetailsContainer.appendChild(errorElement);
+      } else {
+        const userElement = document.createElement('h2');
+        userElement.textContent = 'User Details';
+        userDetailsContainer.appendChild(userElement);
+
+        const usernameElement = document.createElement('p');
+        usernameElement.textContent = `Username: ${data.user.username}`;
+        userDetailsContainer.appendChild(usernameElement);
+
+        if (data.details.length > 0) {
+          const postgresDetailsElement = document.createElement('h2');
+          postgresDetailsElement.textContent = 'User PostgreSQL Details';
+          userDetailsContainer.appendChild(postgresDetailsElement);
+
+          const ulElement = document.createElement('ul');
+          ulElement.classList.add('list-group');
+          data.details.forEach(detail => {
+            const liElement = document.createElement('li');
+            liElement.classList.add('list-group-item');
+            liElement.textContent = `City: ${detail.city}, Birthdate: ${detail.birthdate}`;
+            ulElement.appendChild(liElement);
+          });
+          userDetailsContainer.appendChild(ulElement);
+        } else {
+          const noDetailsElement = document.createElement('p');
+          noDetailsElement.textContent = 'No details found in PostgreSQL for this user.';
+          userDetailsContainer.appendChild(noDetailsElement);
+        }
+      }
+    }
+  </script>
+
+</body>
+
+</html>

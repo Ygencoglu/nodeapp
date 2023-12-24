@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title>
+  <!-- Google Fonts - Roboto -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap">
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    body {
+      background-color: #f2f2f2; /* Softer background color */
+      font-family: 'Roboto', sans-serif; /* Example of using Google Fonts */
+    }
+
+    .login-container {
+      max-width: 400px;
+      margin: 0 auto;
+      margin-top: 50px;
+      padding: 30px; /* Added more padding */
+      background-color: #ffffff;
+      border: 1px solid #d1d1d1; /* Softer border color */
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      color: #333; /* Darker header color */
+    }
+
+    .form-group label {
+      color: #555; /* Label color */
+    }
+
+    .form-control {
+      border: 1px solid #ccc; /* Input border color */
+    }
+
+    .btn-primary {
+      background-color: #007bff; /* Primary button color */
+      border-color: #007bff;
+    }
+
+    .btn-primary:hover {
+      background-color: #0056b3; /* Darker color on hover */
+      border-color: #0056b3;
+    }
+
+    a {
+      color: #007bff; /* Link color */
+    }
+
+    a:hover {
+      text-decoration: underline; /* Underline on hover */
+    }
+
+    .message {
+      color: #dc3545; /* Red color for error messages */
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="login-container">
+      <h1 class="text-center">Login</h1>
+      <form action="/login" method="post">
+        <div class="form-group">
+          <label for="username">Username:</label>
+          <input type="text" id="username" name="username" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password:</label>
+          <input type="password" id="password" name="password" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Login</button>
+      </form>
+      <br>
+      <p class="text-center">Don't have an account? <a href="/register">Register</a></p>
+      <p class="text-center message"><%= message %></p>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS, jQuery, Popper.js -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
