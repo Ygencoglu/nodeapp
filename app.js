@@ -12,16 +12,16 @@ const { Pool } = require('pg');
 const app = express();
 
 // MongoDB bağlantısı
-mongoose.connect('mongodb://localhost:27017/db_Adi', { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect('mongodb://localhost:27017/kullaniciDB', { useNewUrlParser: true, useUnifiedTopology: true });
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
 // PostgreSQL bağlantısı
 const pool = new Pool({
-  user: 'xx',
+  user: 'yusuf',
   host: 'localhost',
-  database: 'dbadi',
-  password: 'xx',
+  database: 'kullaniciDetayDB',
+  password: '123',
   port: 5432,
 });
 
@@ -149,10 +149,17 @@ app.get('/add-details', isLoggedIn, async (req, res) => {
 });
 
 app.post('/add-details', isLoggedIn, async (req, res) => {
-  const { city, birthdate } = req.body;
-  const userId = req.user._id;
+  const { username, city, birthdate } = req.body;
 
   try {
+    // Kullanıcının ID'sini kullanıcı adına göre bul
+    const user = await User.findOne({ username: username });
+    if (!user) {
+      return res.render('add-details', { error: 'User not found.' });
+    }
+
+    const userId = user._id;
+
     // PostgreSQL'den kullanıcının mevcut detayını kontrol et
     const existingDetail = await pool.query('SELECT * FROM user_details WHERE user_id = $1', [userId]);
 
