@@ -68,7 +68,7 @@ const pool = new Pool({
   user: 'yusuf',
   host: 'localhost',
   database: 'kullaniciDetayDB',
-  password: '123',
+  password: '******',
   port: 5432,
 });
 // RabbitMQ kullanarak mesaj gönderme fonksiyonu
