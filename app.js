@@ -1,5 +1,4 @@
 // app.js
-
 const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
@@ -8,11 +7,59 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const flash = require('connect-flash');
 const { Pool } = require('pg');
+const redis = require('redis');
+const connectRedis = require('connect-redis'); 
+const app = express();  
+const amqp = require('amqplib');
 
-const app = express();
+let rabbitMQChannel;
+amqp.connect('amqp://localhost').then(function(connection) {
+    console.log('Connected to RabbitMQ successfully');
+    return connection.createChannel();
+}).then(function(channel) {
+    console.log('RabbitMQ channel created successfully');
+    rabbitMQChannel = channel;
+}).catch(function(error) {
+    console.error('RabbitMQ connection/channel error:', error);
+});
+
+// Redis Client oluşturma (redis'in yeni sürümü için)
+const redisClient = redis.createClient({
+    url: 'redis://localhost:6379', // Redis URL'si
+    // password: 'your_redis_password', // Eğer Redis şifre korumalıysa
+});
+redisClient.connect().catch(console.error);
+
+redisClient.on('error', function(err) {
+  console.log('Could not establish a connection with Redis. ' + err);
+});
+
+redisClient.on('connect', function(err) {
+  console.log('Connected to Redis successfully');
+});
+// RedisStore'u doğru bir şekilde oluştur
+const RedisStore = require('connect-redis');
+
+// Express session ayarları Redis ile
+app.use(session({
+  secret: 'your_secret_key',
+  saveUninitialized: false,
+  resave: false,
+  cookie: {
+      secure: false, // HTTPS kullanıyorsanız true yapın
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 // Örneğin 1 gün için
+  }
+}));
+
+redisClient.set("testKey", "testValue", redis.print);
+redisClient.get("testKey", (err, reply) => {
+    if (err) throw err;
+    console.log(reply); // "testValue" döndürmesi beklenir
+});
 
 // MongoDB bağlantısı
-mongoose.connect('mongodb://localhost:27017/kullaniciDB', { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect('mongodb://localhost:27017/kullaniciDB');
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
@@ -24,6 +71,14 @@ const pool = new Pool({
   password: '123',
   port: 5432,
 });
+// RabbitMQ kullanarak mesaj gönderme fonksiyonu
+function sendToQueue(queue, message) {
+  rabbitMQChannel.assertQueue(queue, {
+      durable: false
+  });
+  rabbitMQChannel.sendToBuffer(queue, Buffer.from(message));
+}
+
 
 // Model tanımlamaları
 const User = mongoose.model('User', new mongoose.Schema({
@@ -34,7 +89,6 @@ const User = mongoose.model('User', new mongoose.Schema({
 // Express ayarları
 app.set('view engine', 'ejs');
 app.use(express.urlencoded({ extended: false }));
-app.use(session({ secret: 'your_secret_key', resave: true, saveUninitialized: true }));
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(flash());
@@ -69,7 +123,28 @@ passport.deserializeUser((id, done) => {
     .then(user => done(null, user))
     .catch(err => done(err));
 });
+app.post('/add-details', isLoggedIn, async (req, res) => {
+    const { username, city, birthdate } = req.body;
 
+    try {
+        // Kullanıcının ID'sini kullanıcı adına göre bul
+        const user = await User.findOne({ username: username });
+        if (!user) {
+            return res.render('add-details', { error: 'User not found.' });
+        }
+
+        const userId = user._id;
+
+        // RabbitMQ üzerinden detay ekleme mesajını gönder
+        const message = JSON.stringify({ userId, city, birthdate });
+        sendToQueue('userDetailsQueue', message);
+
+        res.redirect('/dashboard');
+    } catch (err) {
+        console.error(err);
+        res.render('add-details', { error: 'An error occurred while adding user details.' });
+    }
+});
 // Routes
 app.get('/', (req, res) => {
   res.render('index', { message: req.flash('error') });
